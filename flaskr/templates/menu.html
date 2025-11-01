@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Menú del Café</h2>
+<form action="{{ url_for('routes.order') }}" method="post" class="card">
+  <label>Tu nombre</label>
+  <input type="text" name="name" required placeholder="Ej: Axel">
+
+  <div class="products">
+    {% for p in products %}
+      <div class="product">
+        <div>
+          <strong>{{ p.name }}</strong>
+          {% if p.category %}<span class="pill">{{ p.category }}</span>{% endif %}
+        </div>
+        <div class="price">$ {{ '%.0f'|format(p.price) }}</div>
+        <input type="number" name="qty_{{ p.id }}" min="0" value="0">
+      </div>
+    {% endfor %}
+  </div>
+
+  <button type="submit">Enviar pedido</button>
+  <p class="hint">El total se calcula automáticamente al procesar el pedido.</p>
+</form>
+{% endblock %}
