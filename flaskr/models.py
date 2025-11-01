@@ -10,6 +10,7 @@ class Product(db.Model):
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_name = db.Column(db.String(120), nullable=False)
+    customer_tel = db.Column(db.String(20))
     items_json = db.Column(db.Text, nullable=False)   # lista de {id, name, qty, price, subtotal} como JSON string
     total = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default="pending")

@@ -5,6 +5,10 @@
   <label>Tu nombre</label>
   <input type="text" name="name" required placeholder="Ej: Axel">
 
+  <label>Nro de contacto</label>
+  <input type="tel" name="tel" inputmode="numeric" pattern="[0-9]{10,15}" required placeholder="Ej: 1122334455" title="Solo números, entre 10 y 15 dígitos.">
+  
+
   <div class="products">
     {% for p in products %}
       <div class="product">
