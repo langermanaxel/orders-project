@@ -1,9 +1,10 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import text, inspect
+from flaskr.models import Order, Product  # importa tus modelos reales
 
-# ⚙️ Crear app mínima usando tu configuración real
+# Crear app básica para acceder al contexto de la DB
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(
     SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(app.instance_path, 'flaskr.sqlite')}",
@@ -12,31 +13,48 @@ app.config.from_mapping(
 
 db = SQLAlchemy(app)
 
-# 🧩 Función auxiliar para agregar columnas si no existen
-def add_column_if_not_exists(table_name, column_name, column_type):
+
+def get_declared_columns(model):
+    """Devuelve un diccionario con columnas definidas en el modelo SQLAlchemy."""
+    return {col.name: str(col.type) for col in model.__table__.columns}
+
+
+def get_existing_columns(table_name):
+    """Devuelve un listado de columnas existentes en la tabla SQLite."""
     with db.engine.connect() as conn:
-        # Usar comillas dobles para evitar error con nombres reservados
         result = conn.execute(text(f'PRAGMA table_info("{table_name}")')).fetchall()
-        columns = [r[1] for r in result]
-        if column_name not in columns:
-            print(f"➡️  Agregando columna '{column_name}' a '{table_name}'...")
-            conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN {column_name} {column_type}'))
-            conn.commit()
-        else:
-            print(f"✅ La columna '{column_name}' ya existe en '{table_name}'.")
+        return [r[1] for r in result]
 
-# 🧰 Ejecutar migraciones necesarias
+
+def add_missing_columns(model, table_name):
+    """Compara columnas declaradas vs existentes y agrega las faltantes."""
+    declared = get_declared_columns(model)
+    existing = get_existing_columns(table_name)
+
+    with db.engine.connect() as conn:
+        for col_name, col_type in declared.items():
+            if col_name not in existing:
+                print(f"➡️  Agregando columna '{col_name}' a '{table_name}' ({col_type})...")
+                conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN {col_name} {col_type}'))
+        conn.commit()
+
+
 def migrate():
-    print("🚀 Iniciando migración de base de datos...")
+    print("🚀 Iniciando migración automática de base de datos...\n")
 
-    # Ejemplo actual: agregar customer_tel
-    add_column_if_not_exists("order", "customer_tel", "VARCHAR(20)")
+    # 🔧 Lista de modelos a sincronizar
+    models = {
+        "order": Order,
+        "product": Product,
+    }
 
-    # Podés agregar más en el futuro:
-    # add_column_if_not_exists("order", "status", "VARCHAR(20)")
-    # add_column_if_not_exists("product", "available", "BOOLEAN")
+    for table, model in models.items():
+        print(f"🔍 Revisando tabla '{table}'...")
+        add_missing_columns(model, table)
+        print(f"✅ Tabla '{table}' sincronizada.\n")
 
-    print("✅ Migración completada con éxito.")
+    print("🎉 Migración completada con éxito.")
+
 
 if __name__ == "__main__":
     with app.app_context():

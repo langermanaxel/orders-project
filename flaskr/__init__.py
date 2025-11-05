@@ -18,7 +18,7 @@ def create_app():
         pass
 
     app.config.update(
-        SECRET_KEY=os.getenv("SECRET_KEY", "dev"),
+        SECRET_KEY=os.getenv("SECRET_KEY", "dev-secret"),
         SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(app.instance_path, 'flaskr.sqlite')}",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", "jwt-secret"),
@@ -27,6 +27,8 @@ def create_app():
         JWT_COOKIE_SECURE=False,           # True si usás HTTPS
         JWT_COOKIE_CSRF_PROTECT=False,     # Para simplificar en dev
         JWT_ACCESS_COOKIE_PATH="/",        # Cookie válida en toda la app
+        JWT_COOKIE_DOMAIN=None,
+        JWT_SESSION_COOKIE=True,  
     )
 
     # Config extra desde config.py si existe
