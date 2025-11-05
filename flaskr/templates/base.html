@@ -8,10 +8,16 @@
 </head>
 <body>
 <header class="topbar">
-  <a href="{{ url_for('routes.menu') }}" class="brand">☕ Café</a>
   <nav>
     <a href="{{ url_for('routes.menu') }}">Menú</a>
-    <a href="{{ url_for('auth.login') }}">Admin</a>
+    {% if current_user %}
+      <a href="{{ url_for('admin.dashboard') }}">Panel</a>
+      <form action="{{ url_for('auth.logout') }}" method="post" class="inline">
+        <button type="submit" class="danger" style="background:none;border:none;color:var(--danger);cursor:pointer;">Salir</button>
+      </form>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">Admin</a>
+    {% endif %}
   </nav>
 </header>
 

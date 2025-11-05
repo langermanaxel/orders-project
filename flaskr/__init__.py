@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, get_jwt_identity, verify_jwt_in_request
 from dotenv import load_dotenv
 
 db = SQLAlchemy()
@@ -11,39 +11,52 @@ def create_app():
     load_dotenv()
     app = Flask(__name__, instance_relative_config=True)
 
-    # Instance dir para la DB
+    # Crear carpeta instance para la DB
     try:
         os.makedirs(app.instance_path, exist_ok=True)
     except OSError:
         pass
 
+    # ⚙️ Configuración principal
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", "dev-secret"),
         SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(app.instance_path, 'flaskr.sqlite')}",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+
+        # JWT CONFIG
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", "jwt-secret"),
-        # JWT en cookies para proteger el panel admin de forma simple
         JWT_TOKEN_LOCATION=["cookies"],
         JWT_COOKIE_SECURE=False,           # True si usás HTTPS
-        JWT_COOKIE_CSRF_PROTECT=False,     # Para simplificar en dev
+        JWT_COOKIE_CSRF_PROTECT=False,     # En producción poner True
         JWT_ACCESS_COOKIE_PATH="/",        # Cookie válida en toda la app
-        JWT_COOKIE_DOMAIN=None,
-        JWT_SESSION_COOKIE=True,  
+        JWT_COOKIE_DOMAIN=None,            # Permite que se use entre blueprints
+        JWT_SESSION_COOKIE=True,           # Persiste en la sesión del navegador
     )
 
-    # Config extra desde config.py si existe
+    # Config extra desde config.py (si existe)
     app.config.from_pyfile("config.py", silent=True)
 
+    # Inicialización
     db.init_app(app)
     jwt.init_app(app)
 
-    # Blueprints
+    # 🔹 Context processor para usar `{{ current_user }}` en templates
+    @app.context_processor
+    def inject_current_user():
+        try:
+            verify_jwt_in_request(optional=True)
+            user = get_jwt_identity()
+        except Exception:
+            user = None
+        return dict(current_user=user)
+
+    # 🔹 Blueprints
     from . import routes, auth, admin
     app.register_blueprint(routes.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(admin.bp)
 
-    # CLI: init-db (crea tablas + seed)
+    # 🔹 CLI: inicializar DB
     @app.cli.command("init-db")
     def init_db_command():
         from .models import Product
@@ -64,3 +77,4 @@ def create_app():
                 print("Base ya tenía datos; no se agregaron productos.")
 
     return app
+
